@@ -1,0 +1,61 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: joomla-mysql
+  labels:
+    app: joomla
+spec:
+  ports:
+    - port: 3306
+  selector:
+    app: joomla
+    tier: mysql
+  clusterIP: None
+---
+apiVersion: apps/v1 # for versions before 1.9.0 use apps/v1beta2
+kind: Deployment
+metadata:
+  name: joomla-mysql
+  labels:
+    app: joomla
+spec:
+  selector:
+    matchLabels:
+      app: joomla
+      tier: mysql
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: joomla
+        tier: mysql
+    spec:
+      containers:
+      - image: mysql:5.6
+        name: mysql
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-pass
+              key: password
+        - name: MYSQL_DATABASE
+          value: joomla
+        - name: MYSQL_USER
+          value: saurabh
+        - name: MYSQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-pass
+              key: upass
+        ports:
+        - containerPort: 3306
+          name: mysql
+        volumeMounts:
+        - name: mysql-persistent-storage
+          mountPath: /var/lib/mysql
+      volumes:
+      - name: mysql-persistent-storage
+        persistentVolumeClaim:
+          claimName: efs-mysql
